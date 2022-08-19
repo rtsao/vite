@@ -451,7 +451,7 @@ export function importAnalysisPlugin(config: ResolvedConfig): Plugin {
               if (cjsShouldExternalizeForSSR(specifier, server._ssrExternals)) {
                 continue
               }
-            } else if (shouldExternalizeForSSR(specifier, config)) {
+            } else if (shouldExternalizeForSSR(specifier, importer, config)) {
               continue
             }
             if (isBuiltin(specifier)) {
