@@ -115,7 +115,7 @@ export interface InternalResolveOptions extends Required<ResolveOptions> {
   ssrOptimizeCheck?: boolean
   // Resolve using esbuild deps optimization
   getDepsOptimizer?: (ssr: boolean) => DepsOptimizer | undefined
-  shouldExternalize?: (id: string) => boolean | undefined
+  shouldExternalize?: (id: string, importer?: string) => boolean | undefined
 }
 
 export function resolvePlugin(resolveOptions: InternalResolveOptions): Plugin {
@@ -312,7 +312,7 @@ export function resolvePlugin(resolveOptions: InternalResolveOptions): Plugin {
 
       // bare package imports, perform node resolve
       if (bareImportRE.test(id)) {
-        const external = options.shouldExternalize?.(id)
+        const external = options.shouldExternalize?.(id, importer)
         if (
           !external &&
           asSrc &&
