@@ -1,6 +1,6 @@
-import { expect, test } from 'vitest'
+import { describe, expect, test } from 'vitest'
 import { port } from './serve'
-import { getColor, page } from '~utils'
+import { editFile, getColor, isServe, page, untilUpdated } from '~utils'
 
 const url = `http://localhost:${port}`
 
@@ -120,4 +120,47 @@ test('import css library', async () => {
 test('import css library', async () => {
   await page.goto(url)
   expect(await page.textContent('.module-condition')).toMatch('[success]')
+})
+
+test('msg from isomorphic module (server)', async () => {
+  await page.goto(url)
+  expect(await page.textContent('.isomorphic-module-server')).toMatch(
+    '[server]',
+  )
+})
+
+test('msg from isomorphic module (browser)', async () => {
+  await page.goto(url)
+  expect(await page.textContent('.isomorphic-module-browser')).toMatch(
+    '[browser]',
+  )
+})
+
+describe.runIf(isServe)('hmr', () => {
+  test('handle isomorphic module updates', async () => {
+    await page.goto(url)
+
+    expect(await page.textContent('.isomorphic-module-server')).toMatch(
+      '[server]',
+    )
+    expect(await page.textContent('.isomorphic-module-browser')).toMatch(
+      '[browser]',
+    )
+
+    editFile('src/isomorphic-module-browser.js', (code) =>
+      code.replace('[browser]', '[browser-hmr]'),
+    )
+    await page.waitForNavigation()
+    await untilUpdated(async () => {
+      return page.textContent('.isomorphic-module-browser')
+    }, '[browser-hmr]')
+
+    editFile('src/isomorphic-module-server.js', (code) =>
+      code.replace('[server]', '[server-hmr]'),
+    )
+    await page.waitForNavigation()
+    await untilUpdated(async () => {
+      return page.textContent('.isomorphic-module-server')
+    }, '[server-hmr]')
+  })
 })

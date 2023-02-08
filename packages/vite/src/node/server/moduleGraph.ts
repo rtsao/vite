@@ -25,6 +25,7 @@ export class ModuleNode {
   meta?: Record<string, any>
   importers = new Set<ModuleNode>()
   importedModules = new Set<ModuleNode>()
+  ssrImportedModules = new Set<ModuleNode>()
   acceptedHmrDeps = new Set<ModuleNode>()
   acceptedHmrExports: Set<string> | null = null
   importedBindings: Map<string, Set<string>> | null = null
@@ -163,7 +164,7 @@ export class ModuleGraph {
     ssr?: boolean,
   ): Promise<Set<ModuleNode> | undefined> {
     mod.isSelfAccepting = isSelfAccepting
-    const prevImports = mod.importedModules
+    const prevImports = ssr ? mod.ssrImportedModules : mod.importedModules
     let noLongerImported: Set<ModuleNode> | undefined
 
     let resolvePromises = []
@@ -189,11 +190,16 @@ export class ModuleGraph {
       await Promise.all(resolvePromises)
     }
 
-    const nextImports = (mod.importedModules = new Set(resolveResults))
+    const nextImports = new Set(resolveResults)
+    if (ssr) {
+      mod.ssrImportedModules = nextImports
+    } else {
+      mod.importedModules = nextImports
+    }
 
     // remove the importer from deps that were imported but no longer are.
     prevImports.forEach((dep) => {
-      if (!nextImports.has(dep)) {
+      if (!mod.ssrImportedModules.has(dep) && !mod.importedModules.has(dep)) {
         dep.importers.delete(mod)
         if (!dep.importers.size) {
           // dependency no longer imported
